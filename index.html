@@ -172,7 +172,8 @@ dialog[open]::backdrop{animation:fade .5s}
 .vm-close:hover{background:var(--blood);transform:rotate(90deg)}
 .vm-main{padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
 .vm-screen{position:relative;aspect-ratio:16/9;background:#000;border:1px solid var(--line)}
-.vm-screen video{width:100%;height:100%;display:block;background:#000}
+.vm-screen video,.vm-screen iframe{width:100%;height:100%;display:block;background:#000;border:0}
+.vm-screen [hidden]{display:none}
 .vm-main h3{font-family:var(--f-goth);font-size:32px;color:var(--bone);font-weight:700;line-height:1.15}
 .vm-main p{color:var(--muted);font-style:italic}
 .vm-side{border-left:1px solid var(--line);padding:22px 18px;overflow-y:auto;max-height:90vh}
@@ -348,7 +349,7 @@ dialog[open]::backdrop{animation:fade .5s}
   <div class="vm">
     <button class="vm-close" id="vmClose" aria-label="Закрыть">✕</button>
     <div class="vm-main">
-      <div class="vm-screen"><video id="vmVideo" controls playsinline preload="none"></video></div>
+      <div class="vm-screen"><video id="vmVideo" controls playsinline preload="none"></video><iframe id="vmYt" hidden title="YouTube" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
       <h3 id="vmTitle"></h3>
       <p id="vmDesc"></p>
     </div>
@@ -361,14 +362,15 @@ dialog[open]::backdrop{animation:fade .5s}
 const VIDEOS = [
   {title:"Спайдерки", desc:"Спайдерки", src:"dimaspider.mp4"},
   {title:"МакТрахер(ДИМАСпайдер)", desc:"МакТрахер(ДИМАСпайдер)", src:"ua.mp4"},
-  {title:"Магус не доехал домой", desc:"Магус не доехал домой", src:"ua2.mp4"},
+  {title:"Магус не доехал домой", desc:"Магус не доехал домой", yt:"qEMCBHYeEbs"},
   {title:"разговор 3 мужиков", desc:"разговор 3 мужиков", src:"ua3.mp4"},
-  {title:"Оззззз", desc:"Оззззз", src:"ua4.mp4"},
-  {title:"еврей задолжал бабок мужикам", desc:"еврей задолжал бабок мужикам", src:"ua5.mp4"},
+  {title:"Оззззз", desc:"Оззззз", yt:"Ii4CBIKcJyk"},
+  {title:"еврей задолжал бабок мужикам", desc:"еврей задолжал бабок мужикам", yt:"J-aDzjgguNg"},
   {title:"ЛГУНЬЯ", desc:"ЛГУНЬЯ", src:"ua6.mp4"},
   {title:"МакТрахер от МакФакера", desc:"МакТрахер от МакФакера", src:"ua7.mp4"},
   {title:"ТЫ ДЕЙВ", desc:"ТЫ ДЕЙВ", src:"ua8.mp4"},
-  /* {title:"Название", desc:"Описание", src:"video2.mp4"}, */
+  /* {title:"Название", desc:"Описание", src:"video2.mp4"},  — файл */
+  /* {title:"Название", desc:"Описание", yt:"ID_ВИДЕО"},  — YouTube */
 ];
 const SEALED = 2; // сколько «запечатанных» слотов показывать
 
@@ -417,12 +419,21 @@ if (matchMedia('(hover:hover)').matches){
 })();
 
 /* Окно архива видео */
-const dlg = $('#vm'), vid = $('#vmVideo'), list = $('#vmList');
+const dlg = $('#vm'), vid = $('#vmVideo'), yt = $('#vmYt'), list = $('#vmList');
+function stopMedia(){ vid.pause(); yt.removeAttribute('src'); }
 function pick(i){
   const v = VIDEOS[i];
-  vid.src = v.src; $('#vmTitle').textContent = v.title; $('#vmDesc').textContent = v.desc;
+  stopMedia();
+  if (v.yt){
+    vid.hidden = true; yt.hidden = false;
+    yt.src = 'https://www.youtube.com/embed/' + v.yt + '?autoplay=1&rel=0&playsinline=1';
+  } else {
+    yt.hidden = true; vid.hidden = false;
+    vid.src = v.src;
+    vid.play().catch(() => {});
+  }
+  $('#vmTitle').textContent = v.title; $('#vmDesc').textContent = v.desc;
   list.querySelectorAll('.vi').forEach((b, k) => b.classList.toggle('on', k === i));
-  vid.play().catch(() => {});
 }
 VIDEOS.forEach((v, i) => {
   const b = document.createElement('button'); b.className = 'vi';
@@ -434,12 +445,12 @@ for (let i = 0; i < SEALED; i++){
   b.innerHTML = '<span class="th">✠</span><span><b>Запечатано</b><small>Скоро…</small></span>'; list.appendChild(b);
 }
 function openVm(){ dlg.showModal(); document.body.style.overflow = 'hidden'; pick(0); }
-function closeVm(){ vid.pause(); vid.removeAttribute('src'); vid.load(); dlg.close(); }
+function closeVm(){ stopMedia(); vid.removeAttribute('src'); vid.load(); dlg.close(); }
 document.querySelectorAll('[data-open]').forEach(b => b.onclick = openVm);
 $('#vmClose').onclick = closeVm;
 dlg.addEventListener('click', e => { if (e.target === dlg) closeVm(); });
-dlg.addEventListener('close', () => { document.body.style.overflow = ''; vid.pause(); });
-dlg.addEventListener('cancel', () => { vid.pause(); });
+dlg.addEventListener('close', () => { document.body.style.overflow = ''; stopMedia(); });
+dlg.addEventListener('cancel', stopMedia);
 </script>
 </body>
 </html>
